@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Wheelchair Finder</title>
+    <title>AI PCB Component Inspector</title>
 
     <!-- ONNX Runtime Web -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 
     <style>
         :root {
-            --bg-color: #0a0f1d;
-            --primary-neon: #00f2fe;
-            --accent-neon: #ff4757;
-            --text-main: #f8fafc;
-            --glass-bg: rgba(15, 23, 42, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --bg-color: #060b13;
+            --primary-neon: #00f2fe; /* 스캔 및 일반 부품 (시안 블루) */
+            --accent-neon: #ff4757;  /* 주요 부품 및 경고 (네온 레드) */
+            --text-main: #f1f5f9;
+            --glass-bg: rgba(10, 18, 30, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.06);
         }
 
-        /* 전체 모바일 화면 최적화 */
+        /* 모바일 전체 화면 최적화 */
         body {
             font-family: 'Pretendard', -apple-system, sans-serif;
             margin: 0;
@@ -35,32 +35,33 @@
             user-select: none;
         }
 
-        /* 헤더 디자인 수려화 */
+        /* 팩토리 공정 장비 느낌의 헤더 */
         header {
             width: 100%;
             padding: 20px 0 10px 0;
             text-align: center;
-            background: linear-gradient(to bottom, rgba(10,15,29,1), rgba(10,15,29,0));
+            background: linear-gradient(to bottom, rgba(6,11,19,1), rgba(6,11,19,0));
             z-index: 10;
         }
 
         header h1 {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 800;
             margin: 0;
             color: var(--primary-neon);
-            letter-spacing: -0.5px;
-            text-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
         }
 
         header p {
-            font-size: 0.85rem;
-            color: #94a3b8;
-            margin: 5px 0 0 0;
-            font-weight: 400;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin: 4px 0 0 0;
+            font-weight: 500;
+            text-transform: uppercase;
         }
 
-        /* 상태 표시 배지 애니메이션 */
+        /* 인공지능 및 공정 상태 표시창 */
         #status-container {
             margin: 10px auto;
             display: inline-block;
@@ -68,43 +69,44 @@
 
         #status {
             font-weight: 600;
-            background: rgba(16, 185, 129, 0.15);
+            background: rgba(16, 185, 129, 0.1);
             color: #10b981;
             padding: 6px 18px;
             border-radius: 50px;
-            font-size: 12px;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-size: 11px;
+            border: 1px solid rgba(16, 185, 129, 0.25);
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.4s ease;
+            font-family: monospace;
         }
 
-        /* 📱 모바일 카메라 뷰포트 컨테이너 크기 및 핏 개선 */
+        /* 📱 회로 기판 촬영용 모바일 카메라 뷰포트 */
         #canvas-container {
             position: relative;
             width: 90%;
             max-width: 420px;
             aspect-ratio: 3 / 4;
-            background: #020617;
-            border-radius: 24px;
+            background: #010409;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
             border: 1px solid var(--glass-border);
             margin-bottom: auto;
         }
 
-        /* 미래형 모서리 데코레이션 효과 */
+        /* 인더스트리얼 정밀 스캔 가이드 모서리 라인 */
         #canvas-container::before, #canvas-container::after {
             content: '';
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border: 3px solid var(--primary-neon);
             z-index: 5;
             pointer-events: none;
         }
-        #canvas-container::before { top: 15px; left: 15px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px;}
-        #canvas-container::after { bottom: 15px; right: 15px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px;}
+        #canvas-container::before { top: 16px; left: 16px; border-right: 0; border-bottom: 0; border-top-left-radius: 6px;}
+        #canvas-container::after { bottom: 16px; right: 16px; border-left: 0; border-top: 0; border-bottom-right-radius: 6px;}
 
         video { display: none; }
 
@@ -117,18 +119,18 @@
             object-fit: cover;
         }
 
-        /* 레이저 스캔 애니메이션 */
+        /* 레이저 실시간 탐지 스캔선 효과 */
         .scan-line {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 4px;
+            height: 3px;
             background: linear-gradient(to bottom, transparent, var(--primary-neon), transparent);
-            box-shadow: 0 0 15px var(--primary-neon);
-            opacity: 0.7;
+            box-shadow: 0 0 12px var(--primary-neon);
+            opacity: 0.6;
             z-index: 3;
-            animation: scan 3s linear infinite;
+            animation: scan 2.5s linear infinite;
             pointer-events: none;
         }
 
@@ -138,12 +140,12 @@
             100% { top: 0%; }
         }
 
-        /* 실시간 데이터 오버레이 뱃지 */
+        /* 하이테크 대시보드 HUD 오버레이 */
         .hud-overlay {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+            bottom: 18px;
+            left: 18px;
+            right: 18px;
             display: flex;
             justify-content: space-between;
             z-index: 4;
@@ -155,13 +157,14 @@
             border: 1px solid var(--glass-border);
             backdrop-filter: blur(12px);
             padding: 8px 14px;
-            border-radius: 12px;
+            border-radius: 10px;
             font-size: 11px;
-            font-family: monospace;
-            color: #cbd5e1;
+            font-family: 'Courier New', Courier, monospace;
+            color: #94a3b8;
             display: flex;
             align-items: center;
             gap: 6px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
 
         .hud-card span {
@@ -169,24 +172,25 @@
             font-weight: bold;
         }
 
-        /* 하단 푸터 패널 */
+        /* 하단 장치 제어 정보 푸터 */
         footer {
             width: 100%;
             padding: 20px 0;
             text-align: center;
-            font-size: 11px;
-            color: #475569;
-            letter-spacing: 0.5px;
+            font-size: 10px;
+            font-family: monospace;
+            color: #334155;
+            letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>🤖 SMART FINDER</h1>
-        <p>실시간 휠체어 & 사람 AI 탐지 시스템</p>
+        <h1>🔍 AI PCB INSPECTOR</h1>
+        <p>Real-time Printed Circuit Component Scanner</p>
         <div id="status-container">
-            <div id="status">⏳ 추론 엔진 로드 중...</div>
+            <div id="status">SYS // LOADING INFERENCE ENGINE...</div>
         </div>
     </header>
 
@@ -195,15 +199,15 @@
         <video id="webcam" autoplay playsinline muted></video>
         <canvas id="display_canvas"></canvas>
         
-        <!-- 실시간 HUD 정보창 -->
+        <!-- 대시보드 인터페이스 -->
         <div class="hud-overlay">
-            <div class="hud-card">MODE: <span>LIVE-SCAN</span></div>
-            <div class="hud-card">DETECTED: <span id="object-count">0</span></div>
+            <div class="hud-card">SYS_MODE: <span>AOI-SCAN</span></div>
+            <div class="hud-card">COMPONENTS: <span id="object-count">0</span></div>
         </div>
     </div>
 
     <footer>
-        AI VISION LAB &copy; 2026
+        AUTOMATION VISION SYSTEM v2.1.0
     </footer>
 
 <script>
@@ -217,13 +221,7 @@ let session;
 const modelWidth = 416;
 const modelHeight = 416;
 
-/* 
- ⚠️ [주의 및 확인 필요] 
- 현재 제공해주신 labels 목록은 휠체어/사람이 아니라 PCB 전자부품 데이터셋입니다.
- 만약 실제 휠체어와 사람을 탐지하는 모델이라면, 모델을 학습시킬 때 사용했던 
- data.yaml의 클래스 순서대로 아래 labels 배열을 반드시 변경해주셔야 정상 작동합니다!
- 예시: const labels = ['Person', 'Wheelchair'];
-*/
+// 🏷️ 인쇄 회로 기판 부품(PCB SMD) 데이터셋 클래스 매핑 고정
 const labels = ['-', 'Battery', 'Button', 'Buzzer', 'Capacitor', 'Capacitor Jumper', 'Clock', 'Connector', 'Diode', 'Display', 'EM', 'Electrolytic Capacitor', 'Ferrite Bead', 'Fuse', 'Heatsink', 'IC', 'Inductor', 'Jumper', 'Led', 'PS', 'Pads', 'Pins', 'Potentiometer', 'Resistor', 'Resistor Jumper', 'Resistor Network', 'SK', 'Switch', 'Test Point', 'Transformer', 'Transistor', 'Unknown Unlabeled', 'Zener Diode', 'iC'];
 
 async function startApp() {
@@ -239,27 +237,27 @@ async function startApp() {
         video.srcObject = stream;
         await video.play();
 
-        statusDiv.innerText = "⚡ AI 엔진 최적화 중...";
-        statusDiv.style.background = "rgba(0, 242, 254, 0.1)";
+        statusDiv.innerText = "SYS // OPTIMIZING MODEL TENSORS...";
+        statusDiv.style.background = "rgba(0, 242, 254, 0.08)";
         statusDiv.style.color = "#00f2fe";
-        statusDiv.style.borderColor = "rgba(0, 242, 254, 0.3)";
+        statusDiv.style.borderColor = "rgba(0, 242, 254, 0.25)";
 
         session = await ort.InferenceSession.create('./best.onnx', { executionProviders: ['wasm'] });
 
-        statusDiv.innerText = "🟢 실시간 탐지 가동 중";
-        statusDiv.style.background = "rgba(16, 185, 129, 0.15)";
+        statusDiv.innerText = "SYS // INSPECTION ACTIVE (REAR_CAM)";
+        statusDiv.style.background = "rgba(16, 185, 129, 0.12)";
         statusDiv.style.color = "#10b981";
-        statusDiv.style.borderColor = "rgba(16, 185, 129, 0.3)";
+        statusDiv.style.borderColor = "rgba(16, 185, 129, 0.25)";
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
         requestAnimationFrame(processFrame);
     } catch (err) {
-        statusDiv.innerText = "❌ 시스템 에러: 카메라 권한 및 모델 확인 요망";
-        statusDiv.style.background = "rgba(239, 68, 68, 0.15)";
+        statusDiv.innerText = "ERR // HARDWARE ERROR OR MODEL NOT FOUND";
+        statusDiv.style.background = "rgba(239, 68, 68, 0.12)";
         statusDiv.style.color = "#ef4444";
-        statusDiv.style.borderColor = "rgba(239, 68, 68, 0.3)";
+        statusDiv.style.borderColor = "rgba(239, 68, 68, 0.25)";
         console.error(err);
     }
 }
@@ -275,7 +273,7 @@ async function processFrame() {
                 const output = outputs[Object.keys(outputs)[0]];
                 postprocess(output.data, output.dims);
             } catch (e) {
-                console.error("추론 오류:", e);
+                console.error("추론 에러:", e);
             }
         }
     }
@@ -328,6 +326,7 @@ function postprocess(data, dims) {
             }
         }
 
+        // 회로 부품의 오탐지를 예방하기 위해 스코어 0.40 기준 유지
         if (maxScore > 0.40) {
             const cx = data[0 * numBoxes + i] / modelWidth * canvas.width;
             const cy = data[1 * numBoxes + i] / modelHeight * canvas.height;
@@ -361,41 +360,42 @@ function postprocess(data, dims) {
                 const boxArea = box.w * box.h;
                 const itemArea = item.w * item.h;
                 const iou = interArea / (boxArea + itemArea - interArea);
-                return iou < 0.45; // 안정적인 제거를 위해 0.45로 미세 조정
+                return iou < 0.45;
             }
             return true;
         });
     }
 
-    // 📊 상단 HUD에 탐지된 개수 실시간 업데이트
+    // 화면 하단 HUD에 실시간 스캔된 총 소자 개수 표기
     countBadge.innerText = selectedObjects.length;
 
-    // 최종 오브젝트 렌더링
+    // 부품 박스 최종 바인딩
     selectedObjects.forEach(obj => {
-        // 실제 클래스 타겟팅 분기 구조 (테크니컬 디자인에 맞춰 다홍과 시안 네온으로 고정)
-        const themeColor = obj.classId === 1 ? "#ff4757" : "#00f2fe";
+        // 배터리(1)나 전원 소자 계열(19, 29) 등 중요 부품은 붉은색, 일반 소자는 네온 블루로 분류 시각화
+        const isCritical = (obj.classId === 1 || obj.classId === 15 || obj.classId === 29);
+        const themeColor = isCritical ? "#ff4757" : "#00f2fe";
 
-        // 바운딩 박스 라인 코너링 강조 효과 스타일 적용
+        // 정밀 계측기 스타일의 바운딩 박스 세팅
         ctx.strokeStyle = themeColor;
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = themeColor; // 글로우 효과 추가
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 3;
+        ctx.shadowColor = themeColor;
         ctx.strokeRect(obj.x, obj.y, obj.w, obj.h);
-        ctx.shadowBlur = 0; // 초기화
+        ctx.shadowBlur = 0; // 성능 저하 방지용 리셋
 
-        // 태그 배경 및 텍스트 렌더링
+        // 미니 소자 태그 드로잉
         ctx.fillStyle = themeColor;
-        const labelName = labels[obj.classId] || 'Unknown';
-        const text = `${labelName} ${Math.round(obj.score * 100)}%`;
+        const labelName = labels[obj.classId] || 'Component';
+        const text = `${labelName} [${Math.round(obj.score * 100)}%]`;
 
-        ctx.font = "bold 11px monospace";
+        ctx.font = "bold 10px monospace";
         const textWidth = ctx.measureText(text).width;
-        const labelY = obj.y - 20 < 0 ? 0 : obj.y - 20;
+        const labelY = obj.y - 18 < 0 ? 0 : obj.y - 18;
         
-        ctx.fillRect(obj.x - 1, labelY, textWidth + 10, 20);
+        ctx.fillRect(obj.x - 1, labelY, textWidth + 8, 18);
 
-        ctx.fillStyle = "#0a0f1d";
-        ctx.fillText(text, obj.x + 4, labelY + 14);
+        ctx.fillStyle = "#060b13";
+        ctx.fillText(text, obj.x + 4, labelY + 13);
     });
 }
 
